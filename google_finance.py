@@ -36,5 +36,12 @@ a = (goog_finc_hist + '?cid=' + cid_code + '&startdate=' + start_date + '&enddat
 request = requests.get(a)
 content = request.content
 soup = BeautifulSoup(content,'html.parser')
-
 print(soup)
+
+# DOWNLOAD TO LOCAL DIRECTORY
+with open(code+'.csv', 'wb') as handle:
+    response = requests.get(a, stream=True)
+    if not response.ok:
+        print('File could not be downloaded')
+    for block in response.iter_content(1024):
+        handle.write(block)
