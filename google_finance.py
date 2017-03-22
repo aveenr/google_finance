@@ -31,4 +31,10 @@ end_date = end_month + end_day + end_year
 
 # OUTPUT DOWNLOAD LINK
 a = (goog_finc_hist + '?cid=' + cid_code + '&startdate=' + start_date + '&enddate=' + end_date + '&output=csv')
-print(a)
+
+# OUPUT TO SCREEN
+request = requests.get(a)
+content = request.content
+soup = BeautifulSoup(content,'html.parser')
+
+print(soup)
