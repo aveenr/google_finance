@@ -17,26 +17,26 @@ for SYMBOLS in BASE_SYMBOLS:
     content = request.content
     soup = BeautifulSoup(content, 'html.parser')
     parsed = soup.find_all('link', {'rel': 'canonical'})
-    
+
     # FIND CID CODE
     for cid in parsed:
         # HARDCODED FOR CID ID
         cid_code = cid['href'][34:]
-    
+
     # INIT DATE PARAMS
     # Mar+1%2C+2000
     back_year = ((int(strftime('%Y')) - YEARS))
     start_date = (strftime('%b+' + '%d' + '%%2C+')) + str(back_year)
     end_date = (strftime('%b+' + '%d' + '%%2C+' + '%Y'))
-    
+
     # OUTPUT DOWNLOAD LINK
     historical_url = (GOOGLE_FINANCE_HISTORICAL_URL + '?cid=' + cid_code + '&startdate=' + start_date + '&enddate=' + end_date + '&output=csv')
-    
+
     # OUPUT TO SCREEN
     # request = requests.get(a)
     # content = request.content
     # soup = BeautifulSoup(content, 'html.parser')
-    
+
     # DOWNLOAD TO LOCAL DIRECTORY
     with open(SYMBOLS.lower() + '.csv', 'wb') as handle:
         response = requests.get(historical_url, stream=True)
