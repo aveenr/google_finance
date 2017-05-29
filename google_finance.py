@@ -1,13 +1,11 @@
 from bs4 import BeautifulSoup
 import requests
-from time import localtime, strftime
 
 # INIT JSE CODE AND LINKS
 SYMBOLS = 'BIL'
 GOOGLE_FINANCE_URL = 'https://www.google.com/finance'
 GOOGLE_FINANCE_HISTORICAL_URL = 'https://www.google.com/finance/historical'
 code_url = GOOGLE_FINANCE_URL + '?q=JSE%3A' + SYMBOLS
-YEARS = 20
 
 # OPEN JSE CODE PAGE IN GOOGLE FINANCE
 request = requests.get(code_url)
@@ -21,10 +19,14 @@ for cid in parsed:
     cid_code = cid['href'][34:]
 
 # INIT DATE PARAMS
-# Mar+1%2C+2000
-back_year = ((int(strftime('%Y')) - YEARS))
-start_date = (strftime('%b+' + '%d' + '%%2C+')) + str(back_year)
-end_date = (strftime('%b+' + '%d' + '%%2C+' + '%Y'))
+start_month = 'Mar+'
+start_day = '10%2C+'
+start_year = '2016'
+start_date = start_month + start_day + start_year
+end_month = 'Mar+'
+end_day = '22%2C+'
+end_year = '2017'
+end_date = end_month + end_day + end_year
 
 # OUTPUT DOWNLOAD LINK
 historical_url = (GOOGLE_FINANCE_HISTORICAL_URL + '?cid=' + cid_code + '&startdate=' + start_date + '&enddate=' + end_date + '&output=csv')
