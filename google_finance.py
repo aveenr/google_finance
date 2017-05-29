@@ -3,39 +3,35 @@ import requests
 from time import localtime, strftime
 
 # INIT JSE CODE AND LINKS
-SYMBOLS = 'bil'
-BASE_SYMBOLS = ['oml','npn','agl']
+INPUT_SYMBOLS = ['agl','bil'] #input jse codes here
 GOOGLE_FINANCE_URL = 'https://www.google.com/finance'
 GOOGLE_FINANCE_HISTORICAL_URL = 'https://www.google.com/finance/historical'
-# code_url = GOOGLE_FINANCE_URL + '?q=JSE%3A' + SYMBOLS
+EXCHANGE = '?q=JSE%3A'
 YEARS = 20
 
-for SYMBOLS in BASE_SYMBOLS:
+# INIT DATE PARAMS
+# Mar+1%2C+2000
+back_year = ((int(strftime('%Y')) - YEARS))
+start_date = (strftime('%b+' + '%d' + '%%2C+')) + str(back_year)
+end_date = (strftime('%b+' + '%d' + '%%2C+' + '%Y'))
+
+for SYMBOLS in INPUT_SYMBOLS:
     # OPEN JSE CODE PAGE IN GOOGLE FINANCE
-    code_url = GOOGLE_FINANCE_URL + '?q=JSE%3A' + SYMBOLS
-    request = requests.get(code_url)
+    print('downloading ' + SYMBOLS.upper(), end='...', flush=True)
+    SYMBOL_URL = GOOGLE_FINANCE_URL + EXCHANGE + SYMBOLS
+    request = requests.get(SYMBOL_URL)
     content = request.content
     soup = BeautifulSoup(content, 'html.parser')
     parsed = soup.find_all('link', {'rel': 'canonical'})
 
-    # FIND CID CODE
+    # GET CID CODE (GOOGLE FINANCE CANONICAL CODE FOR A SECURITY)
     for cid in parsed:
-        # HARDCODED FOR CID ID
-        cid_code = cid['href'][34:]
+        cid_code = cid['href'][34:] # HARDCODED FOR CID ID
 
-    # INIT DATE PARAMS
-    # Mar+1%2C+2000
-    back_year = ((int(strftime('%Y')) - YEARS))
-    start_date = (strftime('%b+' + '%d' + '%%2C+')) + str(back_year)
-    end_date = (strftime('%b+' + '%d' + '%%2C+' + '%Y'))
-
-    # OUTPUT DOWNLOAD LINK
-    historical_url = (GOOGLE_FINANCE_HISTORICAL_URL + '?cid=' + cid_code + '&startdate=' + start_date + '&enddate=' + end_date + '&output=csv')
-
-    # OUPUT TO SCREEN
-    # request = requests.get(a)
-    # content = request.content
-    # soup = BeautifulSoup(content, 'html.parser')
+    # GET GOOGLE FINANCE DOWNLOAD LINK
+    historical_url = (GOOGLE_FINANCE_HISTORICAL_URL + '?cid=' + cid_code +
+                      '&startdate=' + start_date + '&enddate=' + end_date +
+                      '&output=csv')
 
     # DOWNLOAD TO LOCAL DIRECTORY
     with open(SYMBOLS.lower() + '.csv', 'wb') as handle:
@@ -44,3 +40,4 @@ for SYMBOLS in BASE_SYMBOLS:
             print('File could not be downloaded')
         for block in response.iter_content(1024):
             handle.write(block)
+    print('done')
