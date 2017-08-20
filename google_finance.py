@@ -1,7 +1,6 @@
 import requests
 import sys
 from time import strftime
-import math
 import logging
 import os
 import errno
@@ -50,19 +49,15 @@ def download_historical_data(url, stock):
     # don't need the following two line, just logging
     r = requests.get(url, params=historical_payload)
     logging.info('URL sent %s', r.url)
-
-    with open(stock.lower() + '.csv', 'wb') as file_handle:
-        response = requests.get(url, params=historical_payload) #change to headers to save calls
-        if response.headers['Content-Type'] != 'application/vnd.ms-excel':
+    if r.status_code == 400:
             logging.info('Invalid stock %s', stock.upper())
-        else:
-            data_count = 0
-            for block in response.iter_content(1024):
+    else:
+        data_count = 0
+        with open(stock.lower() + '.csv', 'wb') as file_handle:
+            for block in r.iter_content(1024):
                 data_count += len(block)
                 file_handle.write(block)
             print(stock.upper() + ' is complete')
-    # logging.info('Downloaded size %s', math.ceil(data_count/1024))
-
 
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
 
