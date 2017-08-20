@@ -1,43 +1,74 @@
-from bs4 import BeautifulSoup
 import requests
-from time import localtime, strftime
+import sys
+from time import strftime
+import math
+import logging
+import os
+import errno
 
-# INIT JSE CODE AND LINKS
-INPUT_SYMBOLS = ['agl','bil'] #input jse codes here
-GOOGLE_FINANCE_URL = 'https://www.google.com/finance'
-GOOGLE_FINANCE_HISTORICAL_URL = 'https://www.google.com/finance/historical'
-EXCHANGE = '?q=JSE%3A'
-YEARS = 20
+url = 'https://www.google.com/finance/historical'
 
-# INIT DATE PARAMS
-# Mar+1%2C+2000
-back_year = ((int(strftime('%Y')) - YEARS))
-start_date = (strftime('%b+' + '%d' + '%%2C+')) + str(back_year)
-end_date = (strftime('%b+' + '%d' + '%%2C+' + '%Y'))
+period = 1 #daily versus full download
+data_file = 'data'
+root_dir = './'
+dl_dir = 'download_data'
+dl_path = os.path.join(root_dir, dl_dir)
 
-for SYMBOLS in INPUT_SYMBOLS:
-    # OPEN JSE CODE PAGE IN GOOGLE FINANCE
-    print('downloading ' + SYMBOLS.upper(), end='...', flush=True)
-    SYMBOL_URL = GOOGLE_FINANCE_URL + EXCHANGE + SYMBOLS
-    request = requests.get(SYMBOL_URL)
-    content = request.content
-    soup = BeautifulSoup(content, 'html.parser')
-    parsed = soup.find_all('link', {'rel': 'canonical'})
+def get_stocks(stocks_file=data_file):
+    try:
+        with open(stocks_file + '.txt', 'r') as data_file:
+            stocks = (data_file.read()).split()
+            # read into list needs validation
+    except IOError:
+        print('ERROR: File Not found')
+        exit(1)
+    logging.info('Contents of data file %s : ',stocks)
+    make_dir()  #directory created for downloads
+    return stocks
 
-    # GET CID CODE (GOOGLE FINANCE CANONICAL CODE FOR A SECURITY)
-    for cid in parsed:
-        cid_code = cid['href'][34:] # HARDCODED FOR CID ID
+def make_dir():
+    try:
+        os.makedirs(dl_path)
+        os.chdir(dl_path) #make directory and change to it
+        logging.info('Directory %s', dl_path)
+    except OSError as exception:
+        if exception.errno == errno.EEXIST:  # and os.path.isdir(file_path):
+            os.chdir(dl_path) #if directory exists, then change to it
+        else:
+            raise  # something else happened
 
-    # GET GOOGLE FINANCE DOWNLOAD LINK
-    historical_url = (GOOGLE_FINANCE_HISTORICAL_URL + '?cid=' + cid_code +
-                      '&startdate=' + start_date + '&enddate=' + end_date +
-                      '&output=csv')
+def end_date():
+    return strftime('%b %d %Y')
 
-    # DOWNLOAD TO LOCAL DIRECTORY
-    with open(SYMBOLS.lower() + '.csv', 'wb') as handle:
-        response = requests.get(historical_url, stream=True)
-        if not response.ok:
-            print('File could not be downloaded')
-        for block in response.iter_content(1024):
-            handle.write(block)
-    print('done')
+def start_date():
+    return strftime('%b %d ') + str(int(strftime('%Y')) - period)
+
+def download_historical_data(url, stock):
+    logging.info('Current stock is %s',stock.upper())
+    historical_payload = {'q':'jse:'+stock,'output':'csv','startdate':start_date(),'enddate':end_date()}
+    logging.info('Payload data %s', historical_payload)
+    # don't need the following two line, just logging
+    r = requests.get(url, params=historical_payload)
+    logging.info('URL sent %s', r.url)
+
+    with open(stock.lower() + '.csv', 'wb') as file_handle:
+        response = requests.get(url, params=historical_payload) #change to headers to save calls
+        if response.headers['Content-Type'] != 'application/vnd.ms-excel':
+            logging.info('Invalid stock %s', stock.upper())
+        else:
+            data_count = 0
+            for block in response.iter_content(1024):
+                data_count += len(block)
+                file_handle.write(block)
+            print(stock.upper() + ' is complete')
+    # logging.info('Downloaded size %s', math.ceil(data_count/1024))
+
+
+logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
+
+for symbol in get_stocks(): #through list not textfile
+    try:
+        download_historical_data(url, symbol)
+    except requests.exceptions.RequestException as e:
+        print('Unrecognised Error : ', e)
+        sys.exit(1)
