@@ -1,9 +1,9 @@
 import requests
-import sys
 from time import strftime
 import logging
 import os
 import errno
+import datetime
 
 url = 'https://www.google.com/finance/historical'
 
@@ -12,6 +12,7 @@ data_file = 'data'
 root_dir = './'
 dl_dir = 'download_data'
 dl_path = os.path.join(root_dir, dl_dir)
+invalid = []
 
 def get_stocks(stocks_file=data_file):
     try:
@@ -36,6 +37,9 @@ def make_dir():
         else:
             raise  # something else happened
 
+def logger_name():
+    return (datetime.datetime.today().strftime('%Y%m%d_%H%M%S'))+'.log'
+
 def end_date():
     return strftime('%b %d %Y')
 
@@ -45,11 +49,13 @@ def start_date():
 def download_historical_data(url, stock):
     logging.info('Current stock is %s',stock.upper())
     historical_payload = {'q':'jse:'+stock,'output':'csv','startdate':start_date(),'enddate':end_date()}
+    # historical_payload = {'q': 'jse:' + stock, 'output': 'csv', 'startdate': start_date(), 'enddate': end_date()}
     logging.info('Payload data %s', historical_payload)
     # don't need the following two line, just logging
     r = requests.get(url, params=historical_payload)
     logging.info('URL sent %s', r.url)
     if r.status_code == 400:
+            invalid.append(stock)
             logging.info('Invalid stock %s', stock.upper())
     else:
         data_count = 0
@@ -58,12 +64,15 @@ def download_historical_data(url, stock):
                 data_count += len(block)
                 file_handle.write(block)
             print(stock.upper() + ' is complete')
+    # logging.info('Downloaded size %s', math.ceil(data_count/1024))
 
-logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
+logging.basicConfig(filename=logger_name(), level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
 
 for symbol in get_stocks(): #through list not textfile
     try:
         download_historical_data(url, symbol)
     except requests.exceptions.RequestException as e:
-        print('Unrecognised Error : ', e)
-        sys.exit(1)
+        logging.info('Error in connection %s ', e)
+        break
+
+logging.info('%s', invalid)
