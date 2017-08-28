@@ -4,6 +4,7 @@ import logging
 import os
 import errno
 import datetime
+from datetime import date
 
 url = 'https://www.google.com/finance/historical'
 
@@ -40,15 +41,15 @@ def make_dir():
 def logger_name():
     return (datetime.datetime.today().strftime('%Y%m%d_%H%M%S'))+'.log'
 
-def end_date():
-    return strftime('%b %d %Y')
-
-def start_date():
-    return strftime('%b %d ') + str(int(strftime('%Y')) - period)
+def query_string_date(years=0):
+    Y = date.today().year
+    M = date.today().month
+    D = date.today().day
+    return (date(Y - years, M, D).strftime('%b %d %Y'))
 
 def download_historical_data(url, stock):
     logging.info('Current stock is %s',stock.upper())
-    historical_payload = {'q':'jse:'+stock,'output':'csv','startdate':start_date(),'enddate':end_date()}
+    historical_payload = {'q':'jse:'+stock,'output':'csv','startdate':query_string_date(period),'enddate':query_string_date()}
     # historical_payload = {'q': 'jse:' + stock, 'output': 'csv', 'startdate': start_date(), 'enddate': end_date()}
     logging.info('Payload data %s', historical_payload)
     # don't need the following two line, just logging
