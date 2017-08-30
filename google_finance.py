@@ -9,9 +9,9 @@ from datetime import date
 url = 'https://www.google.com/finance/historical'
 
 period = 1 #daily versus full download
-data_file = 'data'
+data_file = 'stocks'
 root_dir = './'
-dl_dir = 'download_data'
+dl_dir = 'git'
 dl_path = os.path.join(root_dir, dl_dir)
 invalid = []
 
@@ -67,13 +67,15 @@ def download_historical_data(url, stock):
             print(stock.upper() + ' is complete')
     # logging.info('Downloaded size %s', math.ceil(data_count/1024))
 
-logging.basicConfig(filename=logger_name(), level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
+def main():
+    logging.basicConfig(filename=logger_name(), level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
+    for symbol in get_stocks(): #through list not textfile
+        try:
+            download_historical_data(url, symbol)
+        except requests.exceptions.RequestException as e:
+            logging.info('Error in connection %s ', e)
+            break
+    logging.info('%s', invalid)
 
-for symbol in get_stocks(): #through list not textfile
-    try:
-        download_historical_data(url, symbol)
-    except requests.exceptions.RequestException as e:
-        logging.info('Error in connection %s ', e)
-        break
-
-logging.info('%s', invalid)
+if __name__ == '__main__':
+    main()
