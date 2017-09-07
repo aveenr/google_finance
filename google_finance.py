@@ -6,6 +6,18 @@ from datetime import date
 import datetime
 import argparse
 
+exchanges = {
+    'JSE'   : 'Johannesburg Stock Exchange',
+    'LON'   : 'London Stock Exchange',
+    'ETR'   : 'Germany',
+    'EPA'   : 'France',
+    'HKG'   : 'Hong Kong Stock Exchange',
+    'ASX'   : 'Australian Securities Exchange',
+    'TYO'   : 'Tokyo Stock Exchange',
+    'NYSE'  : 'NYSE',
+    'NASDAQ': 'NASDAQ'
+}
+
 class GoogleFinanceDownload(object):
     """ Google Finance Downloader that downloads historical data for a list of stocks """
     def __init__(self, period, data_file_name, download_directory, exchange):
@@ -14,8 +26,9 @@ class GoogleFinanceDownload(object):
         self.file = data_file_name
         self.download_directory = download_directory
         self.exchange = exchange
-        self.invalid = []
         self.stocks = []
+        self.invalid = []
+        self.valid = []
 
     def get_stocks(self):
         """" Get stocks data from text file """
@@ -50,20 +63,26 @@ class GoogleFinanceDownload(object):
 
     def query_string_date(self, years=0):
         """" Create date string for url """
-        Y = date.today().year
-        M = date.today().month
-        D = date.today().day
-        return (date(Y - years, M, D).strftime('%b %d %Y'))
+        y = date.today().year
+        m = date.today().month
+        d = date.today().day
+        return (date(y - years, m, d).strftime('%b %d %Y'))
 
     def download_csv(self, stock):
         """" Downloads csv file from Google Finance """
+        if self.exchange.upper() in exchanges:
+            pass
+        else:
+            print('The exchange {0} is currently not supported'.format(self.exchange))
+            exit(1)
         logging.info('Current stock is %s',stock.upper())
-        historical_payload = {'q': self.exchange + ':' + stock, 'output': 'csv',
+
+        payload = {'q': self.exchange + ':' + stock, 'output': 'csv',
                              'startdate':self.query_string_date(self.period),
                               'enddate':self.query_string_date()}
-        print(historical_payload)
-        logging.info('Payload data %s', historical_payload)
-        r = requests.get(self.url, params=historical_payload)
+        logging.info('Payload data %s', payload)
+
+        r = requests.get(self.url, params=payload)
         logging.info('URL sent %s', r.url)
 
         if r.status_code == 400:
@@ -75,6 +94,7 @@ class GoogleFinanceDownload(object):
                 for block in r.iter_content(1024):
                     data_count += len(block)
                     file_handle.write(block)
+                self.valid.append(stock)
                 print(stock.upper() + ' is complete')
 
 def main():
@@ -83,6 +103,7 @@ def main():
     parser.add_argument('-e', '--exchange', help='Name of exchange (default = JSE', default='JSE')
     parser.add_argument('-p', '--path', help='Directory name for download', default='stocks')
     parser.add_argument('-t', '--time', help='Years to count back (default = 1 year)', type=int, default=1)
+    # parser.add_argument('-e', '--exchange', help='Name of exchange (default = JSE', nargs='*', default='JSE')
     args = parser.parse_args()
 
     # init class
@@ -100,8 +121,14 @@ def main():
         except requests.exceptions.RequestException as e:
             logging.info('Error in connection %s ', e)
             break
-    logging.info('%s', JSE_Download.invalid)
+    logging.info('Valid %s', JSE_Download.valid)
+    logging.info('Invalid %s', JSE_Download.invalid)
 
+
+    if len(JSE_Download.invalid) > len(JSE_Download.valid): #if an invalid symbol is picked up, ie a download link isn't created
+        print('Possible error, there are {0} valid and {1} invalid symbols'. format(len(JSE_Download.valid),(len(JSE_Download.invalid))))
+    else:
+        pass
 
 if __name__ == '__main__':
     main()
